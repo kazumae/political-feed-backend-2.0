@@ -1,8 +1,8 @@
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app import services
 from app.api import deps
-from app.models.politician import Politician
+from app.models.user import User
 from app.schemas.politician import Politician as PoliticianSchema
 from app.schemas.politician import (
     PoliticianCreate,
@@ -291,3 +291,107 @@ def delete_politician_party(
     
     party = services.politician.delete_politician_party(db, id=party_id)
     return party
+
+
+# 政治家フォロー関連のエンドポイント
+
+@router.post("/{politician_id}/follow", status_code=status.HTTP_200_OK)
+def follow_politician(
+    *,
+    db: Session = Depends(deps.get_db),
+    politician_id: str = Path(..., description="政治家ID"),
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Dict[str, Any]:
+    """
+    政治家をフォローする
+    """
+    # 政治家が存在するか確認
+    politician = services.politician.get_politician(db, id=politician_id)
+    if not politician:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="政治家が見つかりません",
+        )
+    
+    # 既にフォローしているか確認
+    existing_follow = db.query(services.follows.PoliticianFollow).filter(
+        services.follows.PoliticianFollow.politician_id == politician_id,
+        services.follows.PoliticianFollow.user_id == current_user.id
+    ).first()
+    
+    if existing_follow:
+        # 既にフォローしている場合は何もしない
+        return {
+            "success": True,
+            "message": "既にフォローしています",
+            "followers_count": services.politician.get_followers_count(
+                db, politician_id=politician_id
+            )
+        }
+    
+    # フォロー関係を作成
+    follow = services.follows.PoliticianFollow(
+        politician_id=politician_id,
+        user_id=current_user.id
+    )
+    db.add(follow)
+    db.commit()
+    
+    # フォロワー数を取得
+    followers_count = services.politician.get_followers_count(
+        db, politician_id=politician_id
+    )
+    
+    return {
+        "success": True,
+        "followers_count": followers_count
+    }
+
+
+@router.delete("/{politician_id}/follow", status_code=status.HTTP_200_OK)
+def unfollow_politician(
+    *,
+    db: Session = Depends(deps.get_db),
+    politician_id: str = Path(..., description="政治家ID"),
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Dict[str, Any]:
+    """
+    政治家のフォローを解除する
+    """
+    # 政治家が存在するか確認
+    politician = services.politician.get_politician(db, id=politician_id)
+    if not politician:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="政治家が見つかりません",
+        )
+    
+    # フォロー関係を取得
+    follow = db.query(services.follows.PoliticianFollow).filter(
+        services.follows.PoliticianFollow.politician_id == politician_id,
+        services.follows.PoliticianFollow.user_id == current_user.id
+    ).first()
+    
+    if not follow:
+        # フォローしていない場合は何もしない
+        return {
+            "success": True,
+            "message": "フォローしていません",
+            "followers_count": services.politician.get_followers_count(
+                db, politician_id=politician_id
+            )
+        }
+    
+    # フォロー関係を削除
+    db.delete(follow)
+    db.commit()
+    
+    # フォロワー数を取得
+    followers_count = services.politician.get_followers_count(
+        db, politician_id=politician_id
+    )
+    
+    return {
+        "success": True,
+        "followers_count": followers_count
+    }

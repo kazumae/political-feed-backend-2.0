@@ -33,8 +33,8 @@ async def custom_swagger_ui_html():
         openapi_url=f"{settings.API_V1_STR}/openapi.json",
         title=f"{settings.PROJECT_NAME} - Swagger UI",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui-bundle.js",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui.css",
     )
 
 @app.get("/redoc", include_in_schema=False)
@@ -59,6 +59,8 @@ def custom_openapi():
         description=settings.PROJECT_DESCRIPTION,
         routes=app.routes,
     )
+    # OpenAPIバージョンを明示的に指定
+    openapi_schema["openapi"] = "3.0.0"
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 

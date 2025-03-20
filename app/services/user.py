@@ -142,3 +142,17 @@ def authenticate_user(
     if not verify_password(password, user.password_hash):
         return None
     return user
+
+
+def delete_user(db: Session, *, id: str) -> None:
+    """
+    ユーザーを削除する
+    
+    Args:
+        db: データベースセッション
+        id: ユーザーID
+    """
+    user = db.query(User).filter(User.id == id).first()
+    if user:
+        db.delete(user)
+        db.commit()

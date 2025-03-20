@@ -50,7 +50,7 @@ celery_app.conf.task_queues = {
 # 定期タスクの設定
 celery_app.conf.beat_schedule = {
     "data-collection-every-hour": {
-        "task": "app.tasks.data_collection.collect_data",
+        "task": "app.tasks.data_collection.collect.collect_data",
         "schedule": 60 * 60,  # 1時間ごと
         "options": {"queue": "low_priority"},
     },

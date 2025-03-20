@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 
+from app.models.follows import PoliticianFollow
 from app.models.politician import Politician, PoliticianDetail, PoliticianParty
 from app.schemas.politician import (
     PoliticianCreate,
@@ -10,6 +11,7 @@ from app.schemas.politician import (
     PoliticianPartyUpdate,
     PoliticianUpdate,
 )
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 
@@ -28,8 +30,8 @@ def get_politician(db: Session, id: str) -> Optional[Politician]:
 
 
 def get_politicians(
-    db: Session, 
-    skip: int = 0, 
+    db: Session,
+    skip: int = 0,
     limit: int = 100,
     status: Optional[str] = None,
     party_id: Optional[str] = None,
@@ -59,9 +61,40 @@ def get_politicians(
     
     if search:
         query = query.filter(
-            Politician.name.ilike(f"%{search}%") | 
+            Politician.name.ilike(f"%{search}%") |
             Politician.name_kana.ilike(f"%{search}%")
         )
+    
+    return query.offset(skip).limit(limit).all()
+
+
+def get_politicians_by_party(
+    db: Session,
+    party_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    role: Optional[str] = None
+) -> List[Politician]:
+    """
+    特定の政党に所属する政治家一覧を取得する
+    
+    Args:
+        db: データベースセッション
+        party_id: 政党ID
+        skip: スキップ数
+        limit: 取得上限
+        role: 役職でフィルタリング
+        
+    Returns:
+        政治家オブジェクトのリスト
+    """
+    query = db.query(Politician).filter(
+        Politician.current_party_id == party_id,
+        Politician.status == "active"
+    )
+    
+    if role:
+        query = query.filter(Politician.role.ilike(f"%{role}%"))
     
     return query.offset(skip).limit(limit).all()
 
@@ -385,3 +418,38 @@ def delete_politician_party(db: Session, *, id: str) -> PoliticianParty:
     db.delete(obj)
     db.commit()
     return obj
+
+
+def get_followers_count(db: Session, *, politician_id: str) -> int:
+    """
+    政治家のフォロワー数を取得する
+    
+    Args:
+        db: データベースセッション
+        politician_id: 政治家ID
+        
+    Returns:
+        フォロワー数
+    """
+    return db.query(func.count(PoliticianFollow.user_id)).filter(
+        PoliticianFollow.politician_id == politician_id
+    ).scalar() or 0
+
+
+def is_following_politician(db: Session, *, politician_id: str, user_id: str) -> bool:
+    """
+    ユーザーが政治家をフォローしているかどうかを確認する
+    
+    Args:
+        db: データベースセッション
+        politician_id: 政治家ID
+        user_id: ユーザーID
+        
+    Returns:
+        フォローしている場合はTrue、していない場合はFalse
+    """
+    follow = db.query(PoliticianFollow).filter(
+        PoliticianFollow.politician_id == politician_id,
+        PoliticianFollow.user_id == user_id
+    ).first()
+    return follow is not None

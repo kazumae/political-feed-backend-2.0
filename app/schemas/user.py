@@ -33,6 +33,23 @@ class UserUpdate(UserBase):
     profile_image: Optional[str] = None
 
 
+# パスワード変更時に必要なプロパティ
+class UserPasswordUpdate(BaseModel):
+    """
+    パスワード変更時のスキーマ
+    """
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)
+
+
+# アカウント削除時に必要なプロパティ
+class UserDelete(BaseModel):
+    """
+    アカウント削除時のスキーマ
+    """
+    password: str = Field(..., min_length=1)
+
+
 # DBから取得したデータを返すためのスキーマ
 class User(UserBase):
     """
