@@ -6,6 +6,7 @@ from app.models.follows import TopicFollow
 from app.models.user import User
 from app.schemas.topic import Topic as TopicSchema
 from app.schemas.topic import TopicCreate, TopicUpdate, TopicWithDetails
+from app.schemas.topic_party import TopicPartyStances
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
@@ -222,6 +223,39 @@ def unfollow_topic(
         "success": True,
         "followers_count": followers_count
     }
+
+
+@router.get("/{topic_id}/parties", response_model=TopicPartyStances)
+def read_topic_parties(
+    *,
+    db: Session = Depends(deps.get_db),
+    topic_id: str = Path(..., description="トピックID"),
+    current_user: Any = Depends(deps.get_current_user),
+) -> Any:
+    """
+    トピックに関する政党スタンス一覧を取得する
+    """
+    # トピックが存在するか確認
+    topic = services.topic.get_topic(db, id=topic_id)
+    if not topic:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="トピックが見つかりません",
+        )
+    
+    # トピックに関する政党スタンスを集計
+    party_stances = services.statement.get_topic_party_stances(
+        db, topic_id=topic_id
+    )
+    
+    # 結果を返す
+    result = {
+        "topic_id": topic.id,
+        "topic_name": topic.name,
+        "parties": party_stances
+    }
+    
+    return result
 
 
 @router.get("/trending", response_model=List[TopicSchema])

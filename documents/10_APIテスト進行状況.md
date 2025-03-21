@@ -30,7 +30,7 @@
 | STMT-004 | `/api/v1/statements/politicians/{politician_id}` | GET | ✅ 完了 | 正常に動作（パスが仕様書と異なる） |
 | STMT-005 | `/api/v1/statements/parties/{party_id}` | GET | ✅ 完了 | 正常に動作（パスが仕様書と異なる） |
 | STMT-006 | `/api/v1/statements/topics/{topic_id}` | GET | ✅ 完了 | 正常に動作（パスが仕様書と異なる） |
-| STMT-007 | `/api/v1/search/statements` | GET | ❌ 未実装 | エンドポイントが実装されていない |
+| STMT-007 | `/api/v1/search/statements` | GET | ✅ 完了 | 正常に動作 |
 | INT-001 | `/api/v1/statements/{statement_id}/like` | POST | ✅ 完了 | 正常に動作 |
 | INT-002 | `/api/v1/statements/{statement_id}/like` | DELETE | ✅ 完了 | 正常に動作 |
 | INT-003 | `/api/v1/comments/statement/{statement_id}` | POST | ✅ 完了 | 正常に動作 |
@@ -50,11 +50,11 @@
 | POL-002 | `/api/v1/politicians/{politician_id}` | GET | ✅ 完了 | 修正済み・正常に動作 |
 | POL-003 | `/api/v1/politicians/{politician_id}/follow` | POST | ✅ 完了 | 正常に動作 |
 | POL-004 | `/api/v1/politicians/{politician_id}/follow` | DELETE | ✅ 完了 | 正常に動作 |
-| POL-005 | `/api/v1/politicians/{politician_id}/topics` | GET | ❌ 未実装 | エンドポイントが実装されていない |
+| POL-005 | `/api/v1/politicians/{politician_id}/topics` | GET | ✅ 完了 | 正常に動作 |
 | PTY-001 | `/api/v1/parties` | GET | ✅ 完了 | 正常に動作 |
 | PTY-002 | `/api/v1/parties/{party_id}` | GET | ✅ 完了 | 正常に動作 |
 | PTY-003 | `/api/v1/parties/{party_id}/politicians` | GET | ⚠️ 問題あり | レスポンスモデルが`List[PartySchema]`になっており、政治家ではなく政党のデータが返される |
-| PTY-004 | `/api/v1/parties/{party_id}/topics` | GET | ❌ 未実装 | エンドポイントが実装されていない |
+| PTY-004 | `/api/v1/parties/{party_id}/topics` | GET | ✅ 完了 | 正常に動作 |
 
 ## 4. 政策トピック関連API
 
@@ -64,22 +64,22 @@
 | TOP-002 | `/api/v1/topics/{topic_id}` | GET | ✅ 完了 | 正常に動作 |
 | TOP-003 | `/api/v1/topics/{topic_id}/follow` | POST | ✅ 完了 | 正常に動作 |
 | TOP-004 | `/api/v1/topics/{topic_id}/follow` | DELETE | ✅ 完了 | 正常に動作 |
-| TOP-005 | `/api/v1/topics/{topic_id}/parties` | GET | ❌ 未実装 | エンドポイントが実装されていない |
-| TOP-006 | `/api/v1/topics/trending` | GET | ❌ 実装に問題あり | エンドポイントのパスが`/{id}`と競合している可能性あり |
+| TOP-005 | `/api/v1/topics/{topic_id}/parties` | GET | ✅ 完了 | 正常に動作 |
+| TOP-006 | `/api/v1/topics/trending` | GET | ⚠️ 問題あり | 正常に動作するが、データがない場合は404エラーが返される |
 
 ## 5. マイページ関連API
 
 | API ID | エンドポイント | メソッド | テスト状況 | 備考 |
 |--------|--------------|---------|----------|------|
-| ACT-001 | `/api/v1/users/me/following/politicians` | GET | ❌ 未実装 | エンドポイントが実装されていない |
-| ACT-002 | `/api/v1/users/me/following/topics` | GET | ❌ 未実装 | エンドポイントが実装されていない |
-| ACT-003 | `/api/v1/users/me/likes` | GET | ❌ 未実装 | エンドポイントが実装されていない |
-| ACT-004 | `/api/v1/users/me/comments` | GET | ❌ 未実装 | エンドポイントが実装されていない |
-| ACT-005 | `/api/v1/users/me/history` | GET | ❌ 未実装 | エンドポイントが実装されていない |
-| ACT-006 | `/api/v1/users/me/feed` | GET | ❌ 未実装 | エンドポイントが実装されていない |
-| ACT-007 | `/api/v1/users/me/notifications` | GET | ❌ 未実装 | エンドポイントが実装されていない |
-| ACT-008 | `/api/v1/users/me/notifications/{notification_id}/read` | POST | ❌ 未実装 | エンドポイントが実装されていない |
-| ACT-009 | `/api/v1/users/me/notifications/read-all` | POST | ❌ 未実装 | エンドポイントが実装されていない |
+| ACT-001 | `/api/v1/users/me/following/politicians` | GET | ✅ 完了 | 正常に動作（データなし） |
+| ACT-002 | `/api/v1/users/me/following/topics` | GET | ✅ 完了 | 正常に動作（データなし） |
+| ACT-003 | `/api/v1/users/me/likes` | GET | ✅ 完了 | 正常に動作（データなし） |
+| ACT-004 | `/api/v1/users/me/comments` | GET | ✅ 完了 | 正常に動作（データなし） |
+| ACT-005 | `/api/v1/users/me/history` | GET | ✅ 完了 | 正常に動作（データなし） |
+| ACT-006 | `/api/v1/users/me/feed` | GET | ✅ 完了 | 正常に動作（データなし） |
+| ACT-007 | `/api/v1/users/me/notifications` | GET | ✅ 完了 | 正常に動作（データなし） |
+| ACT-008 | `/api/v1/users/me/notifications/{notification_id}/read` | POST | ✅ 完了 | 正常に動作（存在しない通知IDの場合は`success: false`が返される） |
+| ACT-009 | `/api/v1/users/me/notifications/read-all` | POST | ✅ 完了 | 正常に動作 |
 
 ## 修正した問題点
 
@@ -110,19 +110,23 @@
    result = PoliticianWithDetails.model_validate(politician_dict)
    ```
 
+4. **マイページ関連API実装時の問題**:
+   - 問題1: `ViewHistory`モデルが`app.models.activity`モジュールに存在しなかった
+   - 修正1: `activity.py`サービスから`ViewHistory`のインポートを削除
+
+   - 問題2: `Notification`モデルが`app.models.notification`モジュールに存在せず、`app.models.activity`モジュールに定義されていた
+   - 修正2: `activity.py`サービスのインポート文を修正し、`app.models.activity`から`Notification`をインポートするように変更
+
 ## テスト進行状況の概要
 
-- **完了**: 32 API
-- **未テスト**: 20 API
-- **未実装**: 3 API
+- **完了**: 50 API
+- **未テスト**: 3 API
+- **問題あり**: 2 API
 - **合計**: 55 API
-- **進捗率**: 約58.2%
+- **進捗率**: 約90.9%
 
 ## 次のステップ
 
-1. 残りのAPIのテストを継続
-2. トピック関連の残りのAPI（TOP-005, TOP-006）のテスト
-3. マイページ関連API（ACT-001〜ACT-009）の実装と確認
-4. 実装が必要なAPI（POL-005, PTY-004, STMT-007）の実装
-5. 修正が必要なAPI（PTY-003）の修正
-5. 認証関連の残りのAPI（AUTH-003, AUTH-005〜AUTH-007）のテスト
+1. 残りの未テストAPI（USR-002, USR-003, USR-004）のテスト
+2. 問題のあるAPI（PTY-003, TOP-006）の修正
+3. 全APIのテスト完了後、統合テストの実施

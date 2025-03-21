@@ -4,6 +4,7 @@ from app import services
 from app.api import deps
 from app.schemas.party import Party as PartySchema
 from app.schemas.party import PartyCreate, PartyDetail, PartyUpdate
+from app.schemas.party_topic import PartyTopicStances
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
@@ -150,3 +151,36 @@ def read_party_politicians(
     )
     
     return politicians
+
+
+@router.get("/{party_id}/topics", response_model=PartyTopicStances)
+def read_party_topics(
+    *,
+    db: Session = Depends(deps.get_db),
+    party_id: str = Path(..., description="政党ID"),
+    current_user: Any = Depends(deps.get_current_user),
+) -> Any:
+    """
+    政党のトピック別スタンス一覧を取得する
+    """
+    # 政党が存在するか確認
+    party = services.party.get_party(db, id=party_id)
+    if not party:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="政党が見つかりません",
+        )
+    
+    # 政党の発言からトピック別スタンスを集計
+    topic_stances = services.statement.get_party_statement_topics(
+        db, party_id=party_id
+    )
+    
+    # 結果を返す
+    result = {
+        "party_id": party.id,
+        "party_name": party.name,
+        "topics": topic_stances
+    }
+    
+    return result

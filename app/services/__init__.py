@@ -1,1 +1,11 @@
-from . import comment, follows, party, politician, statement, topic, user
+from . import (
+    activity,
+    comment,
+    follows,
+    party,
+    politician,
+    search,
+    statement,
+    topic,
+    user,
+)

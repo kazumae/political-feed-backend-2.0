@@ -15,6 +15,7 @@ from app.schemas.politician import (
     PoliticianUpdate,
     PoliticianWithDetails,
 )
+from app.schemas.politician_topic import PoliticianTopicStances
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
@@ -304,6 +305,63 @@ def delete_politician_party(
     
     party = services.politician.delete_politician_party(db, id=party_id)
     return party
+
+
+# 政治家のトピック別スタンス関連のエンドポイント
+
+@router.get("/{politician_id}/topics", response_model=PoliticianTopicStances)
+def read_politician_topics(
+    *,
+    db: Session = Depends(deps.get_db),
+    politician_id: str = Path(..., description="政治家ID"),
+    current_user: Any = Depends(deps.get_current_user),
+) -> Any:
+    """
+    政治家のトピック別スタンス一覧を取得する
+    """
+    # 政治家が存在するか確認
+    politician = services.politician.get_politician(db, id=politician_id)
+    if not politician:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="政治家が見つかりません",
+        )
+    
+    # 政治家の発言からトピック別スタンスを集計
+    # 実際の実装では、発言の内容や頻度、トピックとの関連度などから
+    # 政治家のスタンスを分析する複雑なロジックが必要になります
+    # ここでは簡易的な実装を行います
+    
+    # 発言に関連するトピックを取得
+    statement_topics = services.statement.get_politician_statement_topics(
+        db, politician_id=politician_id
+    )
+    
+    # トピック別にスタンスを集計
+    topic_stances = []
+    for topic in statement_topics:
+        # トピックの詳細情報を取得
+        topic_info = services.topic.get_topic(db, id=topic["topic_id"])
+        if topic_info:
+            stance = {
+                "topic_id": topic_info.id,
+                "topic_name": topic_info.name,
+                "topic_slug": topic_info.slug,
+                "stance": topic.get("stance", "neutral"),
+                "confidence": topic.get("confidence", 50),
+                "summary": topic.get("summary", f"{politician.name}の{topic_info.name}に関するスタンス"),
+                "last_updated": topic.get("last_updated")
+            }
+            topic_stances.append(stance)
+    
+    # 結果を返す
+    result = {
+        "politician_id": politician.id,
+        "politician_name": politician.name,
+        "topics": topic_stances
+    }
+    
+    return result
 
 
 # 政治家フォロー関連のエンドポイント

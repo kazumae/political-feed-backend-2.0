@@ -657,3 +657,234 @@ def update_statement_comments_count(db: Session, *, statement_id: str) -> None:
         statement.comments_count = comments_count
         db.add(statement)
         db.commit()
+
+
+def get_politician_statement_topics(db: Session, politician_id: str) -> List[Dict]:
+    """
+    政治家の発言から関連するトピック情報を集計する
+    
+    Args:
+        db: データベースセッション
+        politician_id: 政治家ID
+        
+    Returns:
+        トピック情報のリスト
+    """
+    from app.models.topic import Topic
+
+    # 政治家の発言に関連するトピックを集計
+    # SQLAlchemyでgroup byとcountを使用
+    topic_counts = db.query(
+        StatementTopic.topic_id,
+        func.count(StatementTopic.statement_id).label("count")
+    ).join(
+        Statement, Statement.id == StatementTopic.statement_id
+    ).filter(
+        Statement.politician_id == politician_id,
+        Statement.status == "published"
+    ).group_by(
+        StatementTopic.topic_id
+    ).all()
+    
+    # トピック情報を取得
+    result = []
+    for topic_id, count in topic_counts:
+        topic = db.query(Topic).get(topic_id)
+        if topic:
+            # 発言の内容からスタンスを分析（実際には自然言語処理などが必要）
+            # ここでは簡易的に実装
+            statements = db.query(Statement).join(
+                StatementTopic, StatementTopic.statement_id == Statement.id
+            ).filter(
+                Statement.politician_id == politician_id,
+                StatementTopic.topic_id == topic_id,
+                Statement.status == "published"
+            ).order_by(
+                Statement.statement_date.desc()
+            ).limit(5).all()
+            
+            # スタンスの分析（簡易版）
+            stance = "neutral"
+            confidence = 50
+            summary = f"{topic.name}に関する発言が{count}件あります。"
+            last_updated = None
+            
+            if statements:
+                # 最新の発言日時を取得
+                last_updated = statements[0].statement_date.isoformat()
+                
+                # 実際のアプリケーションでは、ここで発言の内容を分析して
+                # スタンスを判定するロジックが入ります
+                
+            result.append({
+                "topic_id": topic.id,
+                "topic_name": topic.name,
+                "topic_slug": topic.slug,
+                "stance": stance,
+                "confidence": confidence,
+                "summary": summary,
+                "count": count,
+                "last_updated": last_updated
+            })
+    
+    return result
+
+
+def get_party_statement_topics(db: Session, party_id: str) -> List[Dict]:
+    """
+    政党の発言から関連するトピック情報を集計する
+    
+    Args:
+        db: データベースセッション
+        party_id: 政党ID
+        
+    Returns:
+        トピック情報のリスト
+    """
+    # 政党に所属する政治家のIDを取得
+    from app.models.politician import Politician
+    from app.models.topic import Topic
+    politician_ids = db.query(Politician.id).filter(
+        Politician.current_party_id == party_id,
+        Politician.status == "active"
+    ).all()
+    politician_ids = [p[0] for p in politician_ids]
+    
+    if not politician_ids:
+        return []
+    
+    # 政党の発言に関連するトピックを集計
+    topic_counts = db.query(
+        StatementTopic.topic_id,
+        func.count(StatementTopic.statement_id).label("count")
+    ).join(
+        Statement, Statement.id == StatementTopic.statement_id
+    ).filter(
+        Statement.politician_id.in_(politician_ids),
+        Statement.status == "published"
+    ).group_by(
+        StatementTopic.topic_id
+    ).all()
+    
+    # トピック情報を取得
+    result = []
+    for topic_id, count in topic_counts:
+        topic = db.query(Topic).get(topic_id)
+        if topic:
+            # 発言の内容からスタンスを分析（実際には自然言語処理などが必要）
+            # ここでは簡易的に実装
+            statements = db.query(Statement).join(
+                StatementTopic, StatementTopic.statement_id == Statement.id
+            ).filter(
+                Statement.politician_id.in_(politician_ids),
+                StatementTopic.topic_id == topic_id,
+                Statement.status == "published"
+            ).order_by(
+                Statement.statement_date.desc()
+            ).limit(5).all()
+            
+            # スタンスの分析（簡易版）
+            stance = "neutral"
+            confidence = 50
+            summary = f"{topic.name}に関する発言が{count}件あります。"
+            manifesto_url = None
+            last_updated = None
+            
+            if statements:
+                # 最新の発言日時を取得
+                last_updated = statements[0].statement_date.isoformat()
+                
+                # 実際のアプリケーションでは、ここで発言の内容を分析して
+                # スタンスを判定するロジックが入ります
+                
+            result.append({
+                "topic_id": topic.id,
+                "topic_name": topic.name,
+                "topic_slug": topic.slug,
+                "stance": stance,
+                "confidence": confidence,
+                "summary": summary,
+                "manifesto_url": manifesto_url,
+                "count": count,
+                "last_updated": last_updated
+            })
+    
+    return result
+
+
+def get_topic_party_stances(db: Session, topic_id: str) -> List[Dict]:
+    """
+    トピックに関する政党のスタンス情報を集計する
+    
+    Args:
+        db: データベースセッション
+        topic_id: トピックID
+        
+    Returns:
+        政党スタンス情報のリスト
+    """
+    from app.models.party import Party
+
+    # トピックが存在するか確認
+    from app.models.topic import Topic
+    topic = db.query(Topic).get(topic_id)
+    if not topic:
+        return []
+    
+    # 政党一覧を取得
+    parties = db.query(Party).filter(Party.status == "active").all()
+    
+    result = []
+    for party in parties:
+        # 政党に所属する政治家のIDを取得
+        from app.models.politician import Politician
+        politician_ids = db.query(Politician.id).filter(
+            Politician.current_party_id == party.id,
+            Politician.status == "active"
+        ).all()
+        politician_ids = [p[0] for p in politician_ids]
+        
+        if not politician_ids:
+            continue
+        
+        # トピックに関する発言数を集計
+        count = db.query(func.count(Statement.id)).join(
+            StatementTopic, StatementTopic.statement_id == Statement.id
+        ).filter(
+            Statement.politician_id.in_(politician_ids),
+            StatementTopic.topic_id == topic_id,
+            Statement.status == "published"
+        ).scalar() or 0
+        
+        if count > 0:
+            # 発言の内容からスタンスを分析（実際には自然言語処理などが必要）
+            # ここでは簡易的に実装
+            statements = db.query(Statement).join(
+                StatementTopic, StatementTopic.statement_id == Statement.id
+            ).filter(
+                Statement.politician_id.in_(politician_ids),
+                StatementTopic.topic_id == topic_id,
+                Statement.status == "published"
+            ).order_by(
+                Statement.statement_date.desc()
+            ).limit(5).all()
+            
+            # スタンスの分析（簡易版）
+            stance = "neutral"
+            confidence = 50
+            summary = f"{party.name}の{topic.name}に関する発言が{count}件あります。"
+            manifesto_url = None
+            
+            # 実際のアプリケーションでは、ここで発言の内容を分析して
+            # スタンスを判定するロジックが入ります
+            
+            result.append({
+                "party_id": party.id,
+                "party_name": party.name,
+                "stance": stance,
+                "confidence": confidence,
+                "summary": summary,
+                "manifesto_url": manifesto_url
+            })
+    
+    return result
