@@ -695,7 +695,6 @@ def test_create_reply_comment(client: TestClient, test_users):
         print(f"エラーレスポンス: {response.text}")
         
         # テスト環境の問題と判断し、テストをスキップ
-        import pytest
         pytest.skip("テスト環境の問題と判断し、テストをスキップします。")
     
     assert response.status_code in [201, 200]

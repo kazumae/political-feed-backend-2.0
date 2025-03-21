@@ -1,6 +1,9 @@
 """
 テスト用の設定ファイル
 """
+import os
+import sys
+
 import pytest
 from app.core.config import settings
 from app.core.security import get_password_hash
@@ -8,7 +11,36 @@ from app.main import app
 from app.models.user import User
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
+# テストデータを作成する関数をインポート
+from tests.create_test_data import create_test_data
 from tests.db_session import Base, TestSessionLocal, engine
+
+
+# テストセッション開始前にテストデータを作成
+def pytest_configure(config):
+    """
+    pytestの設定時にテストデータを作成
+    """
+    # --skip-dataオプションが指定されていない場合のみテストデータを作成
+    if not config.getoption("--skip-data"):
+        print("テストデータを作成しています...")
+        create_test_data()
+    else:
+        print("テストデータの作成をスキップします")
+
+
+# コマンドラインオプションを追加
+def pytest_addoption(parser):
+    """
+    pytestのコマンドラインオプションを追加
+    """
+    parser.addoption(
+        "--skip-data",
+        action="store_true",
+        default=False,
+        help="テストデータの作成をスキップする"
+    )
 
 
 @pytest.fixture
