@@ -163,7 +163,7 @@ def update_comment(
         )
     
     comment = services.comment.update_comment(
-        db, db_obj=comment, obj_in=comment_in
+        db, db_obj=comment, obj_in=comment_in, current_user_id=current_user.id
     )
     
     return comment
@@ -195,7 +195,7 @@ def delete_comment(
     
     statement_id = comment.statement_id
     
-    services.comment.delete_comment(db, id=comment_id)
+    services.comment.delete_comment(db, id=comment_id, current_user_id=current_user.id)
     
     # コメント数を更新
     services.statement.update_statement_comments_count(db, statement_id=statement_id)

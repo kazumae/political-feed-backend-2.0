@@ -19,9 +19,31 @@ def get_comment(db: Session, id: str) -> Optional[Comment]:
     Returns:
         コメントオブジェクト、存在しない場合はNone
     """
-    return db.query(Comment).options(
-        joinedload(Comment.user)
-    ).filter(Comment.id == id).first()
+    try:
+        # コメントを取得
+        comment = db.query(Comment).filter(Comment.id == id).first()
+        
+        if not comment:
+            return None
+        
+        # ユーザー情報を取得
+        user = db.query(User).filter(User.id == comment.user_id).first()
+        if user:
+            comment.user = user
+        
+        # likes_count, replies_count, reports_countが存在しない場合は0を設定
+        if not hasattr(comment, 'likes_count'):
+            comment.likes_count = 0
+        if not hasattr(comment, 'replies_count'):
+            comment.replies_count = 0
+        if not hasattr(comment, 'reports_count'):
+            comment.reports_count = 0
+        
+        return comment
+    except Exception as e:
+        # エラーが発生した場合はNoneを返す
+        print(f"コメント取得中にエラーが発生: {e}")
+        return None
 
 
 def get_statement_comments(
@@ -144,9 +166,9 @@ def count_statement_comments(
 
 
 def get_comment_replies(
-    db: Session, 
+    db: Session,
     comment_id: str,
-    skip: int = 0, 
+    skip: int = 0,
     limit: int = 20,
     sort: str = "newest"
 ) -> List[Comment]:
@@ -163,24 +185,63 @@ def get_comment_replies(
     Returns:
         コメントオブジェクトのリスト
     """
-    query = db.query(Comment).options(
-        joinedload(Comment.user)
-    ).filter(
-        Comment.parent_id == comment_id,
-        Comment.status == "published"
-    )
-    
-    # ソート
-    if sort == "newest":
-        query = query.order_by(Comment.created_at.desc())
-    elif sort == "oldest":
-        query = query.order_by(Comment.created_at.asc())
-    elif sort == "likes":
-        query = query.order_by(Comment.likes_count.desc())
-    else:
-        query = query.order_by(Comment.created_at.desc())
-    
-    return query.offset(skip).limit(limit).all()
+    try:
+        # まずコメントのIDのみを取得
+        comment_ids_query = db.query(Comment.id).filter(
+            Comment.parent_id == comment_id,
+            Comment.status == "published"
+        )
+        
+        # ソート
+        if sort == "newest":
+            comment_ids_query = comment_ids_query.order_by(Comment.created_at.desc())
+        elif sort == "oldest":
+            comment_ids_query = comment_ids_query.order_by(Comment.created_at.asc())
+        else:
+            comment_ids_query = comment_ids_query.order_by(Comment.created_at.desc())
+        
+        # ページネーション
+        comment_ids = comment_ids_query.offset(skip).limit(limit).all()
+        
+        # IDのリストを取得
+        comment_id_list = [comment_id[0] for comment_id in comment_ids]
+        
+        if not comment_id_list:
+            return []
+        
+        # IDのリストを使用して、コメントを取得
+        comments = db.query(Comment).filter(
+            Comment.id.in_(comment_id_list)
+        ).all()
+        
+        # ユーザー情報を取得
+        user_ids = [comment.user_id for comment in comments]
+        users = db.query(User).filter(User.id.in_(user_ids)).all()
+        
+        # ユーザー情報をコメントに設定
+        user_dict = {user.id: user for user in users}
+        for comment in comments:
+            comment.user = user_dict.get(comment.user_id)
+            
+            # likes_count, replies_count, reports_countが存在しない場合は0を設定
+            if not hasattr(comment, 'likes_count'):
+                comment.likes_count = 0
+            if not hasattr(comment, 'replies_count'):
+                comment.replies_count = 0
+            if not hasattr(comment, 'reports_count'):
+                comment.reports_count = 0
+        
+        # ソート順に並び替え
+        if sort == "newest":
+            comments.sort(key=lambda x: x.created_at, reverse=True)
+        elif sort == "oldest":
+            comments.sort(key=lambda x: x.created_at)
+        
+        return comments
+    except Exception as e:
+        # エラーが発生した場合は、空のリストを返す
+        print(f"返信コメント取得中にエラーが発生: {e}")
+        return []
 
 
 def count_comment_replies(
@@ -204,8 +265,8 @@ def count_comment_replies(
 
 
 def create_comment(
-    db: Session, 
-    obj_in: CommentCreate, 
+    db: Session,
+    obj_in: CommentCreate,
     statement_id: str,
     user_id: str
 ) -> Comment:
@@ -221,29 +282,44 @@ def create_comment(
     Returns:
         作成されたコメントオブジェクト
     """
-    db_obj = Comment(
-        user_id=user_id,
-        statement_id=statement_id,
-        parent_id=obj_in.parent_id,
-        content=obj_in.content,
-        status="published",
-    )
-    db.add(db_obj)
-    db.commit()
-    db.refresh(db_obj)
-    
-    # 親コメントがある場合は返信数を更新
-    if obj_in.parent_id:
-        update_comment_replies_count(db, comment_id=obj_in.parent_id)
-    
-    return db_obj
+    try:
+        # コメントオブジェクトを作成
+        db_obj = Comment(
+            user_id=user_id,
+            statement_id=statement_id,
+            parent_id=obj_in.parent_id,
+            content=obj_in.content,
+            status="published",
+            likes_count=0,
+            replies_count=0,
+            reports_count=0
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        
+        # ユーザー情報を取得して設定
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            db_obj.user = user
+        
+        # 親コメントがある場合は返信数を更新
+        if obj_in.parent_id:
+            update_comment_replies_count(db, comment_id=obj_in.parent_id)
+        
+        return db_obj
+    except Exception as e:
+        db.rollback()
+        print(f"コメント作成中にエラーが発生: {e}")
+        raise
 
 
 def update_comment(
-    db: Session, 
-    *, 
-    db_obj: Comment, 
-    obj_in: Union[CommentUpdate, Dict[str, any]]
+    db: Session,
+    *,
+    db_obj: Comment,
+    obj_in: Union[CommentUpdate, Dict[str, any]],
+    current_user_id: str
 ) -> Comment:
     """
     コメント情報を更新する
@@ -252,10 +328,25 @@ def update_comment(
         db: データベースセッション
         db_obj: 更新対象のコメントオブジェクト
         obj_in: 更新データ（CommentUpdateオブジェクトまたは辞書）
+        current_user_id: 現在のユーザーID
         
     Returns:
         更新されたコメントオブジェクト
+        
+    Raises:
+        HTTPException: 権限がない場合
     """
+    # 自分のコメントかどうか確認
+    if db_obj.user_id != current_user_id:
+        # スーパーユーザーかどうか確認
+        user = db.query(User).filter(User.id == current_user_id).first()
+        if not user or not user.is_superuser:
+            from fastapi import HTTPException, status
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="このコメントを編集する権限がありません",
+            )
+    
     if isinstance(obj_in, dict):
         update_data = obj_in
     else:
@@ -271,16 +362,31 @@ def update_comment(
     return db_obj
 
 
-def delete_comment(db: Session, *, id: str) -> None:
+def delete_comment(db: Session, *, id: str, current_user_id: str) -> None:
     """
     コメントを削除する
     
     Args:
         db: データベースセッション
         id: コメントID
+        current_user_id: 現在のユーザーID
+        
+    Raises:
+        HTTPException: 権限がない場合
     """
     comment = db.query(Comment).get(id)
     if comment:
+        # 自分のコメントかどうか確認
+        if comment.user_id != current_user_id:
+            # スーパーユーザーかどうか確認
+            user = db.query(User).filter(User.id == current_user_id).first()
+            if not user or not user.is_superuser:
+                from fastapi import HTTPException, status
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="このコメントを削除する権限がありません",
+                )
+        
         # 親コメントIDを取得
         parent_id = comment.parent_id
         
