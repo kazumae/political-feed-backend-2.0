@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 
 import pytest
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # プロジェクトのルートディレクトリをPythonパスに追加
@@ -56,16 +56,19 @@ def test_user_model(db_session):
     """
     ユーザーモデルのテスト
     """
-    # テスト用のユーザーを作成
+    # テスト用のユーザーを作成（一意のユーザー名を使用）
     user_id = str(uuid.uuid4())
+    unique_username = f"testuser_{uuid.uuid4().hex[:8]}"
+    unique_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
+    
     user = User(
         id=user_id,
-        username="testuser",
-        email="test@example.com",
+        username=unique_username,
+        email=unique_email,
         password_hash="hashed_password",
         role="user",
         status="active",
-        email_verified=1
+        email_verified=True
     )
     
     # データベースに追加
@@ -73,16 +76,18 @@ def test_user_model(db_session):
     db_session.commit()
     
     # データベースから取得
-    db_user = db_session.query(User).filter(User.username == "testuser").first()
+    db_user = db_session.query(User).filter(
+        User.username == unique_username
+    ).first()
     
     # 検証
     assert db_user is not None
     assert db_user.id == user_id
-    assert db_user.username == "testuser"
-    assert db_user.email == "test@example.com"
+    assert db_user.username == unique_username
+    assert db_user.email == unique_email
     assert db_user.role == "user"
     assert db_user.status == "active"
-    assert db_user.email_verified == 1
+    assert db_user.email_verified is True
 
 
 def test_party_model(db_session):
