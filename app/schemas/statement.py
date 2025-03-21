@@ -62,7 +62,7 @@ class Statement(StatementBase):
     """
     id: str
     politician_id: str
-    politician_name: str
+    politician_name: Optional[str] = None
     party_id: Optional[str] = None
     party_name: Optional[str] = None
     title: str

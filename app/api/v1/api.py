@@ -1,6 +1,7 @@
 from app.api.v1.endpoints import (
     auth,
     comments,
+    health,
     parties,
     politicians,
     statements,
@@ -28,4 +29,7 @@ api_router.include_router(
 )
 api_router.include_router(
     comments.router, prefix="/comments", tags=["コメント"]
+)
+api_router.include_router(
+    health.router, tags=["ヘルスチェック"]
 )

@@ -8,7 +8,12 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.token import RefreshToken, Token, TokenPayload
 from app.schemas.user import UserCreate
-from app.services.user import authenticate_user, create_user, get_user_by_email
+from app.services.user import (
+    authenticate_user,
+    create_user,
+    get_user,
+    get_user_by_email,
+)
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
@@ -114,7 +119,7 @@ def refresh_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    user = get_user_by_email(db, email=token_data.sub)
+    user = get_user(db, id=token_data.sub)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

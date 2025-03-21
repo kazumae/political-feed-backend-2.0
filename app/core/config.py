@@ -36,11 +36,16 @@ class Settings(BaseSettings):
         raise ValueError(v)
     
     # データベース設定
-    DATABASE_URL: Optional[MySQLDsn] = None
+    DATABASE_URL: Optional[Any] = None
     
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str]) -> Any:
+        # テスト環境ではSQLiteを使用
+        if os.getenv("TESTING") == "True":
+            return v or "sqlite:///./test.db"
+        
+        # 本番環境ではMySQLを使用
         if isinstance(v, str):
             return v
         return MySQLDsn.build(

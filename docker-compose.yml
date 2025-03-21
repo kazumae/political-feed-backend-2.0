@@ -11,6 +11,8 @@ services:
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
       - ./scripts:/app/scripts
+      - ./scripts/test_data:/app/scripts/test_data
+      - ./tests:/app/tests
     ports:
       - "8000:8000"
     environment:

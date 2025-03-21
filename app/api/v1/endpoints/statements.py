@@ -150,6 +150,12 @@ def read_statement(
     result = StatementDetail.model_validate(statement)
     result.topics = topics
     
+    # politician_nameフィールドを設定
+    if statement.politician:
+        result.politician_name = statement.politician.name
+        if statement.politician.current_party_id:
+            result.party_id = statement.politician.current_party_id
+    
     # ユーザーがいいねしているかどうかを確認
     if current_user:
         result.is_liked = services.statement.is_statement_liked(

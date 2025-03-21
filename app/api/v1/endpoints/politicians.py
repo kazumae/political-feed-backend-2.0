@@ -79,7 +79,20 @@ def read_politician(
     party_history = services.politician.get_politician_parties(db, politician_id=id)
     
     # 結果を結合
-    result = PoliticianWithDetails.model_validate(politician)
+    # モデルを辞書に変換してからスキーマに変換
+    politician_dict = {
+        "id": politician.id,
+        "name": politician.name,
+        "name_kana": politician.name_kana,
+        "current_party_id": politician.current_party_id,
+        "role": politician.role,
+        "status": politician.status,
+        "image_url": politician.image_url,
+        "profile_summary": politician.profile_summary,
+        "created_at": politician.created_at,
+        "updated_at": politician.updated_at
+    }
+    result = PoliticianWithDetails.model_validate(politician_dict)
     result.details = details
     result.party_history = party_history
     

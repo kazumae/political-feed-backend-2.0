@@ -25,8 +25,8 @@ def get_statement(db: Session, id: str) -> Optional[Statement]:
 
 
 def get_statements(
-    db: Session, 
-    skip: int = 0, 
+    db: Session,
+    skip: int = 0,
     limit: int = 20,
     sort: str = "date_desc",
     filter_party: Optional[str] = None,
@@ -98,7 +98,20 @@ def get_statements(
     else:
         query = query.order_by(Statement.statement_date.desc())
     
-    return query.offset(skip).limit(limit).all()
+    statements = query.offset(skip).limit(limit).all()
+    
+    # politician_nameフィールドを設定
+    for statement in statements:
+        if statement.politician:
+            statement.politician_name = statement.politician.name
+            if statement.politician.current_party_id:
+                statement.party_id = statement.politician.current_party_id
+                # 政党名も設定する場合は以下のコードを追加
+                # party = db.query(Party).get(statement.politician.current_party_id)
+                # if party:
+                #     statement.party_name = party.name
+    
+    return statements
 
 
 def count_statements(
@@ -521,7 +534,7 @@ def delete_statement(db: Session, *, id: str) -> Statement:
 
 def get_statement_topics(
     db: Session, statement_id: str
-) -> List[Dict]:
+) -> List:
     """
     発言に関連するトピック一覧を取得する
     
@@ -532,23 +545,26 @@ def get_statement_topics(
     Returns:
         トピック情報のリスト
     """
+    # モデルとスキーマの名前が同じなので、モデルを明示的に指定
+    from app.models.statement import StatementTopic as StatementTopicModel
     from app.models.topic import Topic
+    from app.schemas.statement import StatementTopic
     
-    statement_topics = db.query(StatementTopic).filter(
-        StatementTopic.statement_id == statement_id
+    statement_topics = db.query(StatementTopicModel).filter(
+        StatementTopicModel.statement_id == statement_id
     ).all()
     
     result = []
     for st in statement_topics:
         topic = db.query(Topic).get(st.topic_id)
         if topic:
-            result.append({
-                "id": topic.id,
-                "name": topic.name,
-                "slug": topic.slug,
-                "category": topic.category,
-                "relevance": st.relevance
-            })
+            result.append(StatementTopic(
+                id=topic.id,
+                name=topic.name,
+                slug=topic.slug,
+                category=topic.category,
+                relevance=st.relevance
+            ))
     
     return result
 
