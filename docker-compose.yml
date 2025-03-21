@@ -13,6 +13,9 @@ services:
       - ./scripts:/app/scripts
       - ./scripts/test_data:/app/scripts/test_data
       - ./tests:/app/tests
+      - ./.flake8:/app/.flake8
+      - ./.isort.cfg:/app/.isort.cfg
+      - ./pyproject.toml:/app/pyproject.toml
     ports:
       - "8000:8000"
     environment:

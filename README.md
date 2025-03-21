@@ -124,6 +124,72 @@ docker exec political-feed-api python /app/scripts/your_script.py
 docker exec political-feed-api alembic upgrade head
 ```
 
+### リンターとフォーマッター
+
+コードの品質を維持するために、以下のツールを使用できます：
+
+#### Flake8（リンター）
+
+Flake8を使用してコードのスタイルとエラーをチェックします：
+
+```bash
+# プロジェクト全体をチェック
+docker exec political-feed-api flake8 app tests
+
+# 特定のディレクトリやファイルをチェック
+docker exec political-feed-api flake8 app/api/v1/endpoints
+docker exec political-feed-api flake8 app/main.py
+```
+
+#### isort（インポート整理）
+
+isortを使用してインポート文を整理します：
+
+```bash
+# プロジェクト全体のインポートをチェック
+docker exec political-feed-api isort --check app tests
+
+# プロジェクト全体のインポートを整理
+docker exec political-feed-api isort app tests
+
+# 特定のファイルのインポートを整理
+docker exec political-feed-api isort app/main.py
+```
+
+#### Black（コードフォーマッター）
+
+Blackを使用してコードを自動フォーマットします：
+
+```bash
+# プロジェクト全体をフォーマット
+docker exec political-feed-api black app tests
+
+# 特定のディレクトリやファイルをフォーマット
+docker exec political-feed-api black app/api
+docker exec political-feed-api black app/main.py
+
+# フォーマットされる変更を確認（実際には変更しない）
+docker exec political-feed-api black --check app tests
+```
+
+#### リンターとフォーマッターの一括実行
+
+すべてのリンターとフォーマッターを一括で実行するスクリプトを用意しています：
+
+```bash
+# app と tests ディレクトリに対して実行（コードを自動修正）
+./scripts/lint.sh
+
+# 特定のディレクトリのみに対して実行
+./scripts/lint.sh app/api
+
+# チェックのみ実行（コードは変更しない）
+./scripts/lint.sh app tests --check
+
+# ヘルプを表示
+./scripts/lint.sh --help
+```
+
 ### コードの変更
 
 ホストマシン上でコードを変更すると、変更は Docker ボリュームを通じてコンテナ内に反映されます。FastAPI の自動リロード機能により、多くの場合、変更後にコンテナを再起動する必要はありません。
