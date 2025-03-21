@@ -46,6 +46,9 @@ oauth2_scheme = OAuth2PasswordBearer(
 # テスト用のセッションを保持する変数
 _test_db = None
 
+# conftest.pyで作成されたセッションを保持する変数
+_conftest_db = None
+
 def get_db():
     """
     リクエストごとにデータベースセッションを取得し、リクエスト完了後にクローズする
@@ -54,9 +57,20 @@ def get_db():
     Yields:
         SQLAlchemy DBセッション
     """
-    global _test_db
+    global _test_db, _conftest_db
     print(f"TESTING environment variable: {os.getenv('TESTING')}")
     print(f"TestSessionLocal defined: {TestSessionLocal is not None}")
+    
+    # conftest.pyで作成されたセッションがあれば、それを使用
+    if _conftest_db is not None:
+        print(f"Using conftest session: {_conftest_db}")
+        db = _conftest_db
+        try:
+            yield db
+        finally:
+            # テスト環境ではセッションを閉じない（再利用するため）
+            pass
+        return
     
     if os.getenv("TESTING") == "True":
         # テスト環境では同じセッションを再利用
@@ -143,6 +157,12 @@ def get_db():
         # テスト環境ではセッションを閉じない（再利用するため）
         if os.getenv("TESTING") != "True":
             db.close()
+
+# conftest.pyからセッションを設定するための関数
+def set_conftest_db(db):
+    global _conftest_db
+    _conftest_db = db
+    print(f"Set conftest session: {_conftest_db}")
 
 
 def get_current_user(

@@ -36,10 +36,11 @@ def get_topic_by_slug(db: Session, slug: str) -> Optional[Topic]:
 
 
 def get_topics(
-    db: Session, 
-    skip: int = 0, 
+    db: Session,
+    skip: int = 0,
     limit: int = 100,
     status: Optional[str] = None,
+    category: Optional[str] = None,
     search: Optional[str] = None
 ) -> List[Topic]:
     """
@@ -50,6 +51,7 @@ def get_topics(
         skip: スキップ数
         limit: 取得上限
         status: ステータスでフィルタリング
+        category: カテゴリでフィルタリング
         search: 名前で検索
         
     Returns:
@@ -60,13 +62,19 @@ def get_topics(
     if status:
         query = query.filter(Topic.status == status)
     
+    if category:
+        query = query.filter(Topic.category == category)
+    
     if search:
         query = query.filter(
-            Topic.name.ilike(f"%{search}%") | 
+            Topic.name.ilike(f"%{search}%") |
             Topic.slug.ilike(f"%{search}%")
         )
     
-    return query.order_by(Topic.importance.desc()).offset(skip).limit(limit).all()
+    return (query.order_by(Topic.importance.desc())
+            .offset(skip)
+            .limit(limit)
+            .all())
 
 
 def create_topic(

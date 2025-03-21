@@ -19,6 +19,7 @@ def read_topics(
     skip: int = 0,
     limit: int = 100,
     status: Optional[str] = Query(None, description="ステータスでフィルタリング"),
+    category: Optional[str] = Query(None, description="カテゴリでフィルタリング"),
     search: Optional[str] = Query(None, description="名前で検索"),
     current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
@@ -26,12 +27,21 @@ def read_topics(
     トピック一覧を取得する
     """
     topics = services.topic.get_topics(
-        db, skip=skip, limit=limit, status=status, search=search
+        db,
+        skip=skip,
+        limit=limit,
+        status=status,
+        category=category,
+        search=search
     )
     return topics
 
 
-@router.post("/", response_model=TopicSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=TopicSchema,
+    status_code=status.HTTP_201_CREATED
+)
 def create_topic(
     *,
     db: Session = Depends(deps.get_db),
