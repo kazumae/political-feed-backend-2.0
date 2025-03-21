@@ -9,7 +9,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_access_token(
-    subject: Union[str, Any], expires_delta: Optional[timedelta] = None
+    subject: Union[str, Any] = None, expires_delta: Optional[timedelta] = None, data: dict = None
 ) -> str:
     """
     アクセストークンを生成する
@@ -17,6 +17,7 @@ def create_access_token(
     Args:
         subject: トークンのサブジェクト（通常はユーザーID）
         expires_delta: トークンの有効期限
+        data: トークンに含めるデータ（下位互換性のため）
         
     Returns:
         生成されたJWTトークン
@@ -27,6 +28,11 @@ def create_access_token(
         expire = datetime.utcnow() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
+    
+    # dataパラメータが提供された場合は、それを使用
+    if data and "sub" in data:
+        subject = data["sub"]
+    
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
@@ -35,7 +41,7 @@ def create_access_token(
 
 
 def create_refresh_token(
-    subject: Union[str, Any], expires_delta: Optional[timedelta] = None
+    subject: Union[str, Any] = None, expires_delta: Optional[timedelta] = None, data: dict = None
 ) -> str:
     """
     リフレッシュトークンを生成する
@@ -43,6 +49,7 @@ def create_refresh_token(
     Args:
         subject: トークンのサブジェクト（通常はユーザーID）
         expires_delta: トークンの有効期限
+        data: トークンに含めるデータ（下位互換性のため）
         
     Returns:
         生成されたJWTトークン
@@ -53,6 +60,11 @@ def create_refresh_token(
         expire = datetime.utcnow() + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
+    
+    # dataパラメータが提供された場合は、それを使用
+    if data and "sub" in data:
+        subject = data["sub"]
+        
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM

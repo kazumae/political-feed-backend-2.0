@@ -10,29 +10,73 @@ def test_login_success(client: TestClient, db: Session):
     """
     正常なログインのテスト
     """
-    # データベースをクリア
-    db.query(User).delete()
-    db.commit()
+    # 既存のユーザーを検索
+    user = db.query(User).filter(User.email == "test@example.com").first()
     
-    # テストユーザーの作成
-    user = User(
-        email="test@example.com",
-        username="testuser",
-        password_hash=get_password_hash("password123"),
-        role="user",
-        status="active",
-        email_verified=True
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    # ユーザーが存在しない場合は作成
+    if not user:
+        user = User(
+            email="test@example.com",
+            username="testuser",
+            password_hash=get_password_hash("password123"),
+            role="user",
+            status="active",
+            email_verified=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    # 既存のユーザーが存在する場合はアクティブに更新
+    else:
+        user.status = "active"
+        db.commit()
+        db.refresh(user)
+    
+    # ログインリクエストの前に、データベースの状態を確認
+    print(f"User in database: {db.query(User).filter(User.email == 'test@example.com').first()}")
+    
+    # 認証サービスを直接呼び出してテスト
+    from app.services.user import authenticate_user
+    authenticated_user = authenticate_user(db, email="test@example.com", password="password123")
+    print(f"Authenticated user: {authenticated_user}")
+    
+    # 認証が成功したことを確認
+    assert authenticated_user is not None
+    assert authenticated_user.email == "test@example.com"
     
     # ログインリクエスト
+    # OAuth2PasswordRequestFormに合わせたフォームデータとして送信
+    # FastAPIのOAuth2PasswordRequestFormはフォームデータを期待する
     login_data = {
         "username": "test@example.com",
         "password": "password123"
     }
-    response = client.post(f"{settings.API_V1_STR}/auth/login", data=login_data)
+    
+    # フォームデータとして送信（application/x-www-form-urlencoded）
+    # Content-Typeヘッダーを明示的に設定
+    response = client.post(
+        f"{settings.API_V1_STR}/auth/login",
+        data=login_data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    
+    # デバッグ用にレスポンスの詳細を出力
+    print(f"Login response status: {response.status_code}")
+    print(f"Login response body: {response.text}")
+    
+    # デバッグ出力を追加
+    print(f"Login response headers: {response.headers}")
+    print(f"Login response cookies: {response.cookies}")
+    
+    # 認証サービスは正常に動作しているが、APIリクエストが失敗する場合は
+    # エラーの詳細を確認する
+    if authenticated_user is not None and response.status_code != 200:
+        print("認証サービスは正常に動作していますが、APIリクエストが失敗しています。")
+        print(f"Response status: {response.status_code}")
+        print(f"Response body: {response.text}")
+        # スキップせずにエラーを表示する
+        # import pytest
+        # pytest.skip("認証サービスは正常に動作していますが、APIリクエストが失敗しています。テスト環境の問題と判断し、テストをスキップします。")
     
     # レスポンスの検証
     assert response.status_code == 200
@@ -46,22 +90,27 @@ def test_login_invalid_credentials(client: TestClient, db: Session):
     """
     無効な認証情報でのログイン失敗テスト
     """
-    # データベースをクリア
-    db.query(User).delete()
-    db.commit()
+    # 既存のユーザーを検索
+    user = db.query(User).filter(User.email == "test2@example.com").first()
     
-    # テストユーザーの作成
-    user = User(
-        email="test2@example.com",
-        username="testuser2",
-        password_hash=get_password_hash("password123"),
-        role="user",
-        status="active",
-        email_verified=True
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    # ユーザーが存在しない場合は作成
+    if not user:
+        user = User(
+            email="test2@example.com",
+            username="testuser2",
+            password_hash=get_password_hash("password123"),
+            role="user",
+            status="active",
+            email_verified=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    # 既存のユーザーが存在する場合はアクティブに更新
+    else:
+        user.status = "active"
+        db.commit()
+        db.refresh(user)
     
     # 間違ったパスワードでログイン
     login_data = {
@@ -83,22 +132,27 @@ def test_login_inactive_user(client: TestClient, db: Session):
     """
     非アクティブユーザーのログイン失敗テスト
     """
-    # データベースをクリア
-    db.query(User).delete()
-    db.commit()
+    # 既存のユーザーを検索
+    user = db.query(User).filter(User.email == "inactive@example.com").first()
     
-    # 非アクティブなテストユーザーの作成
-    user = User(
-        email="inactive@example.com",
-        username="inactiveuser",
-        password_hash=get_password_hash("password123"),
-        role="user",
-        status="inactive",
-        email_verified=True
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    # ユーザーが存在しない場合は作成
+    if not user:
+        user = User(
+            email="inactive@example.com",
+            username="inactiveuser",
+            password_hash=get_password_hash("password123"),
+            role="user",
+            status="inactive",
+            email_verified=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    # 既存のユーザーが存在する場合は非アクティブに更新
+    else:
+        user.status = "inactive"
+        db.commit()
+        db.refresh(user)
     
     # ログインリクエスト
     login_data = {
@@ -120,22 +174,27 @@ def test_get_current_user(client: TestClient, db: Session):
     """
     現在のユーザー情報取得テスト
     """
-    # データベースをクリア
-    db.query(User).delete()
-    db.commit()
+    # 既存のユーザーを検索
+    user = db.query(User).filter(User.email == "current@example.com").first()
     
-    # テストユーザーの作成
-    user = User(
-        email="current@example.com",
-        username="currentuser",
-        password_hash=get_password_hash("password123"),
-        role="user",
-        status="active",
-        email_verified=True
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    # ユーザーが存在しない場合は作成
+    if not user:
+        user = User(
+            email="current@example.com",
+            username="currentuser",
+            password_hash=get_password_hash("password123"),
+            role="user",
+            status="active",
+            email_verified=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    # 既存のユーザーが存在する場合はアクティブに更新
+    else:
+        user.status = "active"
+        db.commit()
+        db.refresh(user)
     
     # ログインしてトークンを取得
     login_data = {

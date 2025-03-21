@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 
 
-@router.get("/statement/{statement_id}", response_model=CommentList)
+@router.get("/statements/{statement_id}", response_model=CommentList)
 def read_statement_comments(
     *,
     db: Session = Depends(deps.get_db),
@@ -61,7 +61,7 @@ def read_statement_comments(
     }
 
 
-@router.post("/statement/{statement_id}", response_model=CommentSchema, status_code=status.HTTP_201_CREATED)
+@router.post("/statements/{statement_id}", response_model=CommentSchema, status_code=status.HTTP_201_CREATED)
 def create_comment(
     *,
     db: Session = Depends(deps.get_db),

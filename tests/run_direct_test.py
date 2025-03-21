@@ -18,7 +18,8 @@ if __name__ == "__main__":
     # テスト対象のファイルを指定
     test_files = [
         "tests/test_basic.py",
-        "tests/test_models.py"
+        "tests/test_models.py",
+        "tests/test_api/test_auth.py"  # 認証テストを追加
     ]
     
     # pytestを実行

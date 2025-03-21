@@ -5,6 +5,7 @@ from app.api import deps
 from app.schemas.party import Party as PartySchema
 from app.schemas.party import PartyCreate, PartyDetail, PartyUpdate
 from app.schemas.party_topic import PartyTopicStances
+from app.schemas.politician import Politician as PoliticianSchema
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
@@ -125,7 +126,7 @@ def delete_party(
     return party
 
 
-@router.get("/{party_id}/politicians", response_model=List[PartySchema])
+@router.get("/{party_id}/politicians", response_model=List[PoliticianSchema])
 def read_party_politicians(
     *,
     db: Session = Depends(deps.get_db),

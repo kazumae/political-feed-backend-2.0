@@ -16,9 +16,9 @@
 | AUTH-006 | `/api/v1/auth/password/confirm` | POST | ✅ 完了 | 正常に動作（フィールド名は`new_password`） |
 | AUTH-007 | `/api/v1/auth/email/verify` | GET | ✅ 完了 | 正常に動作 |
 | USR-001 | `/api/v1/users/me` | GET | ✅ 完了 | 正常に動作 |
-| USR-002 | `/api/v1/users/me` | PATCH | ❌ 未テスト | - |
-| USR-003 | `/api/v1/users/password` | PUT | ❌ 未テスト | - |
-| USR-004 | `/api/v1/users/me` | DELETE | ❌ 未テスト | - |
+| USR-002 | `/api/v1/users/me` | PATCH | ✅ 完了 | 正常に動作（実際のエンドポイントはPUT） |
+| USR-003 | `/api/v1/users/password` | PUT | ✅ 完了 | 正常に動作 |
+| USR-004 | `/api/v1/users/me` | DELETE | ✅ 完了 | 正常に動作 |
 
 ## 2. 発言フィード関連API
 
@@ -53,7 +53,7 @@
 | POL-005 | `/api/v1/politicians/{politician_id}/topics` | GET | ✅ 完了 | 正常に動作 |
 | PTY-001 | `/api/v1/parties` | GET | ✅ 完了 | 正常に動作 |
 | PTY-002 | `/api/v1/parties/{party_id}` | GET | ✅ 完了 | 正常に動作 |
-| PTY-003 | `/api/v1/parties/{party_id}/politicians` | GET | ⚠️ 問題あり | レスポンスモデルが`List[PartySchema]`になっており、政治家ではなく政党のデータが返される |
+| PTY-003 | `/api/v1/parties/{party_id}/politicians` | GET | ✅ 完了 | 修正済み・正常に動作（レスポンスモデルを`List[PoliticianSchema]`に修正） |
 | PTY-004 | `/api/v1/parties/{party_id}/topics` | GET | ✅ 完了 | 正常に動作 |
 
 ## 4. 政策トピック関連API
@@ -65,7 +65,7 @@
 | TOP-003 | `/api/v1/topics/{topic_id}/follow` | POST | ✅ 完了 | 正常に動作 |
 | TOP-004 | `/api/v1/topics/{topic_id}/follow` | DELETE | ✅ 完了 | 正常に動作 |
 | TOP-005 | `/api/v1/topics/{topic_id}/parties` | GET | ✅ 完了 | 正常に動作 |
-| TOP-006 | `/api/v1/topics/trending` | GET | ⚠️ 問題あり | 正常に動作するが、データがない場合は404エラーが返される |
+| TOP-006 | `/api/v1/topics/trending` | GET | ✅ 完了 | 修正済み・正常に動作（データがない場合でも空のリストを返すように修正） |
 
 ## 5. マイページ関連API
 
@@ -117,16 +117,22 @@
    - 問題2: `Notification`モデルが`app.models.notification`モジュールに存在せず、`app.models.activity`モジュールに定義されていた
    - 修正2: `activity.py`サービスのインポート文を修正し、`app.models.activity`から`Notification`をインポートするように変更
 
+5. **政党所属政治家一覧API (PTY-003)の問題**:
+   - 問題: レスポンスモデルが`List[PartySchema]`になっており、政治家ではなく政党のデータが返されていた
+   - 修正: レスポンスモデルを`List[PoliticianSchema]`に変更し、正しく政治家のリストを返すようにした
+
+6. **トレンドトピックAPI (TOP-006)の問題**:
+   - 問題: データがない場合に404エラーが返されていた
+   - 修正: データがない場合でも空のリストを返すように修正（`return topics or []`）
+
 ## テスト進行状況の概要
 
-- **完了**: 50 API
-- **未テスト**: 3 API
-- **問題あり**: 2 API
+- **完了**: 55 API
+- **未テスト**: 0 API
+- **問題あり**: 0 API
 - **合計**: 55 API
-- **進捗率**: 約90.9%
+- **進捗率**: 100%
 
 ## 次のステップ
 
-1. 残りの未テストAPI（USR-002, USR-003, USR-004）のテスト
-2. 問題のあるAPI（PTY-003, TOP-006）の修正
-3. 全APIのテスト完了後、統合テストの実施
+1. 全APIのテスト完了後、統合テストの実施

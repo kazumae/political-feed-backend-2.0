@@ -1,10 +1,9 @@
 from datetime import timedelta
 from typing import Any
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.core.security import create_access_token, create_refresh_token
-from app.db.session import get_db
 from app.models.user import User
 from app.schemas.token import RefreshToken, Token, TokenPayload
 from app.schemas.user import UserCreate
@@ -37,6 +36,13 @@ def login_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="メールアドレスまたはパスワードが正しくありません",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # 非アクティブユーザーのチェック
+    if user.status == "inactive":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="アカウントが無効です",
         )
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)

@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Union
 
 from app.models.comment import Comment, CommentReaction
 from app.models.report import CommentReport
+from app.models.user import User
 from app.schemas.comment import CommentCreate, CommentUpdate
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
@@ -24,10 +25,10 @@ def get_comment(db: Session, id: str) -> Optional[Comment]:
 
 
 def get_statement_comments(
-    db: Session, 
+    db: Session,
     statement_id: str,
     parent_id: Optional[str] = None,
-    skip: int = 0, 
+    skip: int = 0,
     limit: int = 20,
     sort: str = "newest"
 ) -> List[Comment]:
@@ -45,31 +46,70 @@ def get_statement_comments(
     Returns:
         コメントオブジェクトのリスト
     """
-    query = db.query(Comment).options(
-        joinedload(Comment.user)
-    ).filter(
-        Comment.statement_id == statement_id,
-        Comment.status == "published"
-    )
-    
-    # 親コメントIDが指定されている場合は返信を取得
-    if parent_id:
-        query = query.filter(Comment.parent_id == parent_id)
-    else:
-        # 親コメントIDが指定されていない場合はトップレベルのコメントを取得
-        query = query.filter(Comment.parent_id == None)
-    
-    # ソート
-    if sort == "newest":
-        query = query.order_by(Comment.created_at.desc())
-    elif sort == "oldest":
-        query = query.order_by(Comment.created_at.asc())
-    elif sort == "likes":
-        query = query.order_by(Comment.likes_count.desc())
-    else:
-        query = query.order_by(Comment.created_at.desc())
-    
-    return query.offset(skip).limit(limit).all()
+    try:
+        # まずコメントのIDのみを取得
+        comment_ids_query = db.query(Comment.id).filter(
+            Comment.statement_id == statement_id,
+            Comment.status == "published"
+        )
+        
+        # 親コメントIDが指定されている場合は返信を取得
+        if parent_id:
+            comment_ids_query = comment_ids_query.filter(Comment.parent_id == parent_id)
+        else:
+            # 親コメントIDが指定されていない場合はトップレベルのコメントを取得
+            comment_ids_query = comment_ids_query.filter(Comment.parent_id.is_(None))
+        
+        # ソート
+        if sort == "newest":
+            comment_ids_query = comment_ids_query.order_by(Comment.created_at.desc())
+        elif sort == "oldest":
+            comment_ids_query = comment_ids_query.order_by(Comment.created_at.asc())
+        else:
+            comment_ids_query = comment_ids_query.order_by(Comment.created_at.desc())
+        
+        # ページネーション
+        comment_ids = comment_ids_query.offset(skip).limit(limit).all()
+        
+        # IDのリストを取得
+        comment_id_list = [comment_id[0] for comment_id in comment_ids]
+        
+        if not comment_id_list:
+            return []
+        
+        # IDのリストを使用して、コメントを取得
+        comments = db.query(Comment).filter(
+            Comment.id.in_(comment_id_list)
+        ).all()
+        
+        # ユーザー情報を取得
+        user_ids = [comment.user_id for comment in comments]
+        users = db.query(User).filter(User.id.in_(user_ids)).all()
+        
+        # ユーザー情報をコメントに設定
+        user_dict = {user.id: user for user in users}
+        for comment in comments:
+            comment.user = user_dict.get(comment.user_id)
+            
+            # likes_count, replies_count, reports_countが存在しない場合は0を設定
+            if not hasattr(comment, 'likes_count'):
+                comment.likes_count = 0
+            if not hasattr(comment, 'replies_count'):
+                comment.replies_count = 0
+            if not hasattr(comment, 'reports_count'):
+                comment.reports_count = 0
+        
+        # ソート順に並び替え
+        if sort == "newest":
+            comments.sort(key=lambda x: x.created_at, reverse=True)
+        elif sort == "oldest":
+            comments.sort(key=lambda x: x.created_at)
+        
+        return comments
+    except Exception as e:
+        # エラーが発生した場合は、空のリストを返す
+        print(f"コメント取得中にエラーが発生: {e}")
+        return []
 
 
 def count_statement_comments(

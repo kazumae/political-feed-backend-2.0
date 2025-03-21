@@ -268,4 +268,5 @@ def get_trending_topics(
     トレンドトピックを取得する
     """
     topics = services.topic.get_trending_topics(db, limit=limit)
-    return topics
+    # データがない場合でも空のリストを返す（404エラーを返さない）
+    return topics or []
