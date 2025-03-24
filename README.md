@@ -206,6 +206,82 @@ docker-compose up -d
 
 環境変数は `docker-compose.yml` ファイルで設定されています。開発環境では、`.env` ファイルを作成して環境変数を上書きすることもできます。
 
+## データベースアクセス
+
+開発環境では、ホストマシンからSQLクライアントを使用してデータベースに直接アクセスすることができます。これにより、データの閲覧、クエリの実行、データベース構造の確認などが容易になります。
+
+### 接続情報
+
+以下の情報を使用して、お好みのSQLクライアントからデータベースに接続できます：
+
+- **ホスト**: localhost（または127.0.0.1）
+- **ポート**: 3306
+- **データベース名**: political_feed_db
+- **ユーザー名**: political_user
+- **パスワード**: political_password
+
+### 一般的なSQLクライアントでの接続方法
+
+#### MySQL Workbench
+
+1. MySQL Workbenchを起動
+2. 「+」ボタンをクリックして新しい接続を作成
+3. 接続名を入力（例：Political Feed DB）
+4. 接続情報を入力：
+   - ホスト：localhost
+   - ポート：3306
+   - ユーザー名：political_user
+   - パスワード：political_password（「Store in Vault...」をクリック）
+5. 「Test Connection」ボタンをクリックして接続をテスト
+6. 「OK」をクリックして保存
+7. 作成した接続をダブルクリックして接続
+8. 接続後、「SCHEMAS」タブでpolitical_feed_dbを選択
+
+#### DBeaver
+
+1. DBeaverを起動
+2. 「新しい接続」ボタンをクリック
+3. 「MySQL」を選択して「次へ」をクリック
+4. 接続情報を入力：
+   - サーバーホスト：localhost
+   - ポート：3306
+   - データベース：political_feed_db
+   - ユーザー名：political_user
+   - パスワード：political_password
+5. 「接続テスト」ボタンをクリックして接続をテスト
+6. 「完了」をクリックして保存
+
+#### TablePlus
+
+1. TablePlusを起動
+2. 「Create a new connection」ボタンをクリック
+3. 「MySQL」を選択
+4. 接続情報を入力：
+   - 名前：Political Feed DB
+   - ホスト：localhost
+   - ポート：3306
+   - ユーザー：political_user
+   - パスワード：political_password
+   - データベース：political_feed_db
+5. 「Test」ボタンをクリックして接続をテスト
+6. 「Connect」ボタンをクリックして接続
+
+#### コマンドライン（MySQL CLI）
+
+MySQLコマンドラインクライアントがインストールされている場合：
+
+```bash
+mysql -h localhost -P 3306 -u political_user -p political_feed_db
+```
+
+パスワードの入力を求められたら、`political_password`を入力します。
+
+### 注意事項
+
+- データベースに変更を加える場合は注意してください。特に本番環境のデータベースに接続する場合は、読み取り専用操作のみを行うことをお勧めします。
+- 開発環境のデータベースは、コンテナの再起動時にデータが保持されますが、`docker-compose down -v`コマンドを実行するとボリュームが削除され、データが失われます。
+- 重要なデータがある場合は、定期的にバックアップを取ることをお勧めします。
+
 ## トラブルシューティング
 
 ### テスト実行時の問題
