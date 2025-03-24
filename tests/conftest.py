@@ -1,9 +1,6 @@
 """
 テスト用の設定ファイル
 """
-import os
-import sys
-
 import pytest
 from app.core.config import settings
 from app.core.security import get_password_hash
@@ -64,8 +61,9 @@ def auth_token(client: TestClient, db: Session):
     
     if existing_user:
         print(f"既存のテストユーザーを更新: {existing_user.id}, {existing_user.email}")
-        # パスワードを更新
+        # パスワードとロールを更新
         existing_user.password_hash = get_password_hash("password123")
+        existing_user.role = "admin"  # ロールをadminに変更
         existing_user.status = "active"
         existing_user.email_verified = True
         db.add(existing_user)
@@ -73,13 +71,13 @@ def auth_token(client: TestClient, db: Session):
         db.refresh(existing_user)
         user = existing_user
     else:
-        # テストユーザーの作成
-        print("新しいテストユーザーを作成")
+        # テストユーザーの作成（管理者権限を持つユーザー）
+        print("新しいテストユーザーを作成（管理者権限）")
         user = User(
             email="test_auth@example.com",
             username="test_auth_user",
             password_hash=get_password_hash("password123"),
-            role="user",
+            role="admin",  # userからadminに変更
             status="active",
             email_verified=True
         )
