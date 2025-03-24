@@ -112,13 +112,22 @@ Docker コンテナを使用してテストを実行するスクリプト：
 - トピックデータ
 - 発言データ
 - コメントデータ
-- コメントデータ
 
 テストデータの作成をスキップする場合：
 
 ```bash
 docker exec political-feed-api python -m pytest --skip-data
 ```
+
+#### 開発環境用データ
+
+開発環境でテストアカウントを使用するには、以下のコマンドを実行してテストデータをデータベースに登録する必要があります：
+
+```bash
+docker exec political-feed-api python /app/scripts/run_test_data.py
+```
+
+このコマンドを実行すると、上記と同じテストユーザーアカウントが開発環境のデータベースに登録され、ログインできるようになります。
 
 ## 開発作業
 
