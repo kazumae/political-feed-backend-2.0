@@ -1,13 +1,14 @@
 import importlib.util
 import os
 import sys
+from typing import Optional
 
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.schemas.token import TokenPayload
 from app.services.user import get_user
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from pydantic import ValidationError
@@ -39,6 +40,18 @@ if os.getenv("TESTING") == "True":
 
 # OAuth2のトークン取得エンドポイント
 oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login"
+)
+
+# オプショナルなOAuth2のトークン取得エンドポイント（認証なしでもアクセス可能）
+class OptionalOAuth2PasswordBearer(OAuth2PasswordBearer):
+    async def __call__(self, request: Request = None):
+        try:
+            return await super().__call__(request)
+        except HTTPException:
+            return None
+
+oauth2_scheme_optional = OptionalOAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/login"
 )
 
@@ -164,6 +177,36 @@ def set_conftest_db(db):
     _conftest_db = db
     print(f"Set conftest session: {_conftest_db}")
 
+def get_current_user_optional(
+    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme_optional)
+) -> Optional[User]:
+    """
+    現在のユーザーを取得する（認証トークンがない場合はNoneを返す）
+    
+    Args:
+        db: データベースセッション
+        token: JWTトークン（オプショナル）
+        
+    Returns:
+        現在のユーザーオブジェクト、または認証トークンがない場合はNone
+    """
+    if not token:
+        return None
+        
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+    except (jwt.JWTError, ValidationError):
+        return None
+    
+    user = get_user(db, id=token_data.sub)
+    if not user:
+        return None
+        
+    return user
+
 
 def get_current_user(
     db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
@@ -181,53 +224,43 @@ def get_current_user(
     Raises:
         HTTPException: トークンが無効な場合
     """
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        token_data = TokenPayload(**payload)
-        print(f"トークンデータ: {token_data}")
-        print(f"ユーザーID: {token_data.sub}")
-    except (jwt.JWTError, ValidationError) as e:
-        print(f"トークンデコードエラー: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="認証情報が無効です",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # データベース内のユーザーを確認
-    all_users = db.query(User).all()
-    print(f"データベース内のユーザー数: {len(all_users)}")
-    for u in all_users:
-        print(f"ユーザー: {u.id}, {u.email}, {u.username}")
-    
-    user = get_user(db, id=token_data.sub)
-    if not user:
-        print(f"ユーザーが見つかりません: {token_data.sub}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="ユーザーが見つかりません",
-        )
-    print(f"ユーザーが見つかりました: {user.id}, {user.email}, {user.username}")
-    return user
+    # 以下はデバッグ用のコード
+    # try:
+    #     payload = jwt.decode(
+    #         token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+    #     )
+    #     token_data = TokenPayload(**payload)
+    #     print(f"トークンデータ: {token_data}")
+    #     print(f"ユーザーID: {token_data.sub}")
+    # except (jwt.JWTError, ValidationError) as e:
+    #     print(f"トークンデコードエラー: {e}")
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="認証情報が無効です",
+    #         headers={"WWW-Authenticate": "Bearer"},
+    #     )
+    #
+    # # データベース内のユーザーを確認
+    # all_users = db.query(User).all()
+    # print(f"データベース内のユーザー数: {len(all_users)}")
+    # for u in all_users:
+    #     print(f"ユーザー: {u.id}, {u.email}, {u.username}")
+    #
+    # user = get_user(db, id=token_data.sub)
+    # if not user:
+    #     print(f"ユーザーが見つかりません: {token_data.sub}")
+    #     raise HTTPException(
+    #         status_code=status.HTTP_404_NOT_FOUND,
+    #         detail="ユーザーが見つかりません",
+    #     )
+    # print(f"ユーザーが見つかりました: {user.id}, {user.email}, {user.username}")
+    # return user
 
 
 def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """
-    現在のアクティブなユーザーを取得する
-    
-    Args:
-        current_user: 現在のユーザーオブジェクト
-        
-    Returns:
-        現在のアクティブなユーザーオブジェクト
-        
-    Raises:
-        HTTPException: ユーザーが非アクティブな場合
-    """
+    """現在のアクティブなユーザーを取得する"""
     if not current_user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -239,18 +272,7 @@ def get_current_active_user(
 def get_current_active_superuser(
     current_user: User = Depends(get_current_active_user),
 ) -> User:
-    """
-    現在のアクティブな管理者ユーザーを取得する
-    
-    Args:
-        current_user: 現在のユーザーオブジェクト
-        
-    Returns:
-        現在のアクティブな管理者ユーザーオブジェクト
-        
-    Raises:
-        HTTPException: ユーザーが管理者でない場合
-    """
+    """現在のアクティブな管理者ユーザーを取得する"""
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

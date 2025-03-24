@@ -19,10 +19,9 @@ def read_parties(
     limit: int = 100,
     status: Optional[str] = Query(None, description="ステータスでフィルタリング"),
     search: Optional[str] = Query(None, description="名前で検索"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    政党一覧を取得する
+    政党一覧を取得する（認証不要）
     """
     parties = services.party.get_parties(
         db, skip=skip, limit=limit, status=status, search=search
@@ -49,10 +48,9 @@ def read_party(
     *,
     db: Session = Depends(deps.get_db),
     id: str = Path(..., description="政党ID"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    政党の詳細情報を取得する
+    政党の詳細情報を取得する（認証不要）
     """
     party = services.party.get_party(db, id=id)
     if not party:
@@ -134,10 +132,9 @@ def read_party_politicians(
     skip: int = 0,
     limit: int = 100,
     role: Optional[str] = Query(None, description="役職でフィルタリング"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    政党に所属する政治家一覧を取得する
+    政党に所属する政治家一覧を取得する（認証不要）
     """
     # 政党が存在するか確認
     party = services.party.get_party(db, id=party_id)
@@ -159,10 +156,9 @@ def read_party_topics(
     *,
     db: Session = Depends(deps.get_db),
     party_id: str = Path(..., description="政党ID"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    政党のトピック別スタンス一覧を取得する
+    政党のトピック別スタンス一覧を取得する（認証不要）
     """
     # 政党が存在するか確認
     party = services.party.get_party(db, id=party_id)

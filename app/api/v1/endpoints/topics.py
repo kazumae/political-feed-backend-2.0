@@ -21,10 +21,9 @@ def read_topics(
     status: Optional[str] = Query(None, description="ステータスでフィルタリング"),
     category: Optional[str] = Query(None, description="カテゴリでフィルタリング"),
     search: Optional[str] = Query(None, description="名前で検索"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    トピック一覧を取得する
+    トピック一覧を取得する（認証不要）
     """
     topics = services.topic.get_topics(
         db,
@@ -60,10 +59,10 @@ def read_topic(
     *,
     db: Session = Depends(deps.get_db),
     id: str = Path(..., description="トピックID"),
-    current_user: Any = Depends(deps.get_current_user),
+    current_user: Any = Depends(deps.get_current_user_optional),
 ) -> Any:
     """
-    トピックの詳細情報を取得する
+    トピックの詳細情報を取得する（認証不要）
     """
     topic = services.topic.get_topic(db, id=id)
     if not topic:
@@ -79,11 +78,13 @@ def read_topic(
     result = TopicWithDetails.model_validate(topic)
     result.related_topics = related_topics
     
-    # ユーザーがフォローしているかどうかを確認
+    # ユーザーがフォローしているかどうかを確認（ログイン時のみ）
     if current_user:
         result.is_following = services.topic.is_following_topic(
             db, topic_id=id, user_id=current_user.id
         )
+    else:
+        result.is_following = False
     
     return result
 
@@ -240,10 +241,9 @@ def read_topic_parties(
     *,
     db: Session = Depends(deps.get_db),
     topic_id: str = Path(..., description="トピックID"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    トピックに関する政党スタンス一覧を取得する
+    トピックに関する政党スタンス一覧を取得する（認証不要）
     """
     # トピックが存在するか確認
     topic = services.topic.get_topic(db, id=topic_id)
@@ -272,10 +272,9 @@ def read_topic_parties(
 def get_trending_topics(
     db: Session = Depends(deps.get_db),
     limit: int = Query(10, description="取得数"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    トレンドトピックを取得する
+    トレンドトピックを取得する（認証不要）
     """
     topics = services.topic.get_trending_topics(db, limit=limit)
     # データがない場合でも空のリストを返す（404エラーを返さない）

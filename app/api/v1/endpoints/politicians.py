@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session
 
 router = APIRouter()
 
-
 @router.get("/", response_model=List[PoliticianSchema])
 def read_politicians(
     db: Session = Depends(deps.get_db),
@@ -30,13 +29,12 @@ def read_politicians(
     status: Optional[str] = Query(None, description="ステータスでフィルタリング"),
     party_id: Optional[str] = Query(None, description="政党IDでフィルタリング"),
     search: Optional[str] = Query(None, description="名前で検索"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    政治家一覧を取得する
+    政治家一覧を取得する（認証不要）
     """
     politicians = services.politician.get_politicians(
-        db, skip=skip, limit=limit, status=status, 
+        db, skip=skip, limit=limit, status=status,
         party_id=party_id, search=search
     )
     return politicians
@@ -61,10 +59,9 @@ def read_politician(
     *,
     db: Session = Depends(deps.get_db),
     id: str = Path(..., description="政治家ID"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    政治家の詳細情報を取得する
+    政治家の詳細情報を取得する（認証不要）
     """
     politician = services.politician.get_politician(db, id=id)
     if not politician:
@@ -213,10 +210,9 @@ def read_politician_parties(
     *,
     db: Session = Depends(deps.get_db),
     id: str = Path(..., description="政治家ID"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    政治家の所属政党履歴一覧を取得する
+    政治家の所属政党履歴一覧を取得する（認証不要）
     """
     politician = services.politician.get_politician(db, id=id)
     if not politician:
@@ -314,10 +310,9 @@ def read_politician_topics(
     *,
     db: Session = Depends(deps.get_db),
     politician_id: str = Path(..., description="政治家ID"),
-    current_user: Any = Depends(deps.get_current_user),
 ) -> Any:
     """
-    政治家のトピック別スタンス一覧を取得する
+    政治家のトピック別スタンス一覧を取得する（認証不要）
     """
     # 政治家が存在するか確認
     politician = services.politician.get_politician(db, id=politician_id)
